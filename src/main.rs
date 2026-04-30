@@ -34,11 +34,12 @@ fn main() -> Result<()> {
     .context("parsing FORAGER_INPUTS")?;
 
     let mut measurements = Vec::new();
-    for entry in glob::glob(&inputs.glob).with_context(|| format!("invalid glob: {}", inputs.glob))?
+    for entry in
+        glob::glob(&inputs.glob).with_context(|| format!("invalid glob: {}", inputs.glob))?
     {
         let path = entry.with_context(|| format!("error walking glob {}", inputs.glob))?;
-        let metadata = std::fs::metadata(&path)
-            .with_context(|| format!("stat {}", path.display()))?;
+        let metadata =
+            std::fs::metadata(&path).with_context(|| format!("stat {}", path.display()))?;
         if !metadata.is_file() {
             continue;
         }
