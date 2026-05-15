@@ -49,7 +49,21 @@ name = "forager_filesize"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "forager_sdk",
  "glob",
+ "schemars",
+ "serde",
+ "serde_json",
+ "wezel_types",
+]
+
+[[package]]
+name = "forager_sdk"
+version = "0.1.0-pre"
+source = "git+https://github.com/wezel-build/wezel#59c5f7baad770092710d0a560974e0a447154f19"
+dependencies = [
+ "anyhow",
+ "schemars",
  "serde",
  "serde_json",
  "wezel_types",
@@ -455,8 +469,8 @@ dependencies = [
 
 [[package]]
 name = "wezel_types"
-version = "0.1.0"
-source = "git+https://github.com/wezel-build/wezel#0ec6f87c727c0fd85924e944972a86e4f764667d"
+version = "0.1.0-pre"
+source = "git+https://github.com/wezel-build/wezel#59c5f7baad770092710d0a560974e0a447154f19"
 dependencies = [
  "schemars",
  "serde",

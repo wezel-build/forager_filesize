@@ -1,58 +1,43 @@
 use anyhow::{Context, Result};
+use forager_sdk::Forager;
+use schemars::JsonSchema;
 use serde::Deserialize;
-use wezel_types::{ForagerPluginEnvelope, ForagerPluginOutput};
+use wezel_types::ForagerPluginOutput;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 struct FilesizeInputs {
+    /// Glob pattern, evaluated against the experiment workspace cwd.
     glob: String,
 }
 
-fn main() -> Result<()> {
-    let args: Vec<String> = std::env::args().collect();
-    if args.get(1).is_some_and(|a| a == "--schema") {
-        println!(
-            "{}",
-            serde_json::json!({
-                "name": "filesize",
-                "description": "Reports byte size of every file matching a glob",
-                "inputs": {
-                    "glob": { "type": "string", "description": "Glob pattern, evaluated against the experiment workspace cwd" }
-                },
-                "output": {
-                    "description": "One measurement per matched file. `name` is the matched path (relative to cwd), `value` is the size in bytes."
-                }
-            })
-        );
-        return Ok(());
-    }
+struct Filesize;
 
-    let out_path = std::env::var("FORAGER_OUT").context("FORAGER_OUT not set")?;
-    let inputs_path = std::env::var("FORAGER_INPUTS").context("FORAGER_INPUTS not set")?;
-    let inputs: FilesizeInputs = serde_json::from_str(
-        &std::fs::read_to_string(&inputs_path).with_context(|| format!("reading {inputs_path}"))?,
-    )
-    .context("parsing FORAGER_INPUTS")?;
+impl Forager for Filesize {
+    const NAME: &'static str = "filesize";
+    const DESCRIPTION: &'static str = "Reports byte size of every file matching a glob";
+    const MEASUREMENTS_DOC: &'static str = "One measurement per matched file. The measurement name is the file's path \
+         (relative to cwd); the value is its size in bytes.";
+    type Inputs = FilesizeInputs;
 
-    let mut measurements = Vec::new();
-    for entry in
-        glob::glob(&inputs.glob).with_context(|| format!("invalid glob: {}", inputs.glob))?
-    {
-        let path = entry.with_context(|| format!("error walking glob {}", inputs.glob))?;
-        let metadata =
-            std::fs::metadata(&path).with_context(|| format!("stat {}", path.display()))?;
-        if !metadata.is_file() {
-            continue;
+    fn run(inputs: FilesizeInputs) -> Result<Vec<ForagerPluginOutput>> {
+        let mut measurements = Vec::new();
+        for entry in
+            glob::glob(&inputs.glob).with_context(|| format!("invalid glob: {}", inputs.glob))?
+        {
+            let path = entry.with_context(|| format!("error walking glob {}", inputs.glob))?;
+            let metadata =
+                std::fs::metadata(&path).with_context(|| format!("stat {}", path.display()))?;
+            if !metadata.is_file() {
+                continue;
+            }
+            measurements.push(ForagerPluginOutput {
+                name: path.to_string_lossy().into_owned(),
+                value: serde_json::json!(metadata.len()),
+                tags: Default::default(),
+            });
         }
-        measurements.push(ForagerPluginOutput {
-            name: path.to_string_lossy().into_owned(),
-            value: serde_json::json!(metadata.len()),
-            tags: Default::default(),
-        });
+        Ok(measurements)
     }
-
-    let envelope = ForagerPluginEnvelope { measurements };
-    std::fs::write(&out_path, serde_json::to_string(&envelope)?)
-        .with_context(|| format!("writing {out_path}"))?;
-
-    Ok(())
 }
+
+forager_sdk::forager_main!(Filesize);
