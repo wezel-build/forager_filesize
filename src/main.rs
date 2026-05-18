@@ -15,12 +15,12 @@ struct Filesize;
 impl Forager for Filesize {
     const NAME: &'static str = "filesize";
     const DESCRIPTION: &'static str = "Reports byte size of every file matching a glob";
-    const MEASUREMENTS_DOC: &'static str = "One measurement per matched file. The measurement name is the file's path \
+    const OUTCOMES_DOC: &'static str = "One outcome per matched file. The outcome name is the file's path \
          (relative to cwd); the value is its size in bytes.";
     type Inputs = FilesizeInputs;
 
     fn run(inputs: FilesizeInputs) -> Result<Vec<ForagerPluginOutput>> {
-        let mut measurements = Vec::new();
+        let mut outcomes = Vec::new();
         for entry in
             glob::glob(&inputs.glob).with_context(|| format!("invalid glob: {}", inputs.glob))?
         {
@@ -30,13 +30,13 @@ impl Forager for Filesize {
             if !metadata.is_file() {
                 continue;
             }
-            measurements.push(ForagerPluginOutput {
+            outcomes.push(ForagerPluginOutput {
                 name: path.to_string_lossy().into_owned(),
                 value: serde_json::json!(metadata.len()),
                 tags: Default::default(),
             });
         }
-        Ok(measurements)
+        Ok(outcomes)
     }
 }
 
